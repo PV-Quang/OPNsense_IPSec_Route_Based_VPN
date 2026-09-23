@@ -352,6 +352,73 @@ Nếu cần traffic hai chiều rõ ràng, có thể tạo thêm rule ngược l
 > [!IMPORTANT]
 > Không chỉ tạo rule trên interface `VTIPROD`. Với default IPsec filtering behavior của OPNsense, hãy kiểm tra rule tại **IPsec encapsulation**.
 
+
+### 10.3 WAN → Cho phép IPsec Control Traffic
+
+Khi sử dụng **IPsec Connections** trên OPNsense, cần đảm bảo traffic IKE/IPsec từ peer phía PROD được phép đi vào WAN của firewall.
+
+Trong mô hình lab này:
+
+```text
+OPNsense WAN IP : 61.14.236.216
+Remote Peer     : 103.141.177.86
+```
+
+Vào:
+
+```text
+Firewall → Rules → WAN
+```
+
+Tạo rule cho phép traffic từ đúng public IP của peer PROD tới WAN của OPNsense:
+
+```text
+Action           : Pass
+Direction        : In
+IP Version       : IPv4
+Protocol         : any
+Source           : 103.141.177.86
+Source Port      : any
+Destination      : WAN address
+Destination Port : any
+```
+
+![WAN firewall rule for IPsec peer](assets/10-3-wan-ipsec-control-traffic.png)
+
+> [!NOTE]
+> Trong lab này đang sử dụng `Protocol: any` để đơn giản hóa quá trình cấu hình và troubleshooting.  
+> Với môi trường production, nên giới hạn rule theo đúng traffic cần thiết cho IPsec.
+
+Khuyến nghị production:
+
+```text
+UDP 500   : IKE
+UDP 4500  : NAT-T
+ESP       : IP Protocol 50
+```
+
+Có thể tách thành hai rule:
+
+```text
+Rule 1 - IKE / NAT-T
+Action      : Pass
+Protocol    : UDP
+Source      : 103.141.177.86
+Destination : WAN address
+Ports       : 500, 4500
+```
+
+```text
+Rule 2 - ESP
+Action      : Pass
+Protocol    : ESP
+Source      : 103.141.177.86
+Destination : WAN address
+```
+
+Việc giới hạn `Source` theo đúng public IP của VPN peer và chỉ mở các protocol cần thiết giúp giảm phạm vi truy cập vào WAN firewall, phù hợp với nguyên tắc **least privilege**.
+
+
 ---
 
 
